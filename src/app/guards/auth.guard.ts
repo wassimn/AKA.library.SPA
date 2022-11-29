@@ -15,10 +15,13 @@ export class AuthGuard implements CanActivate {
       .pipe(
         take(1),
         map((isLoggedIn: boolean) => {
+          console.log('Auth Guard', isLoggedIn);
           if (!isLoggedIn) {
+            console.log('navigating to login page')
             this.router.navigate(['/login']);
             return false;
           }
+          console.log('user logged in');
           return true;
         })
       );

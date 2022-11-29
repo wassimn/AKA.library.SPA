@@ -31,6 +31,7 @@ export class MemberService {
   }
 
   getSignedOutBooks(member: Member): Observable<SignedOutBook []> {
+    console.log('getSignedOutBooks called')
     return this.http.get<SignedOutBook[]>(`${this.apiUrl}/${member.memberId}/books/signedOut`);
   }
 

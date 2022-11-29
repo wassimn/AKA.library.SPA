@@ -63,7 +63,6 @@ export class LoginComponent implements OnInit {
             this.loginErrors = false;
             console.log('Form Submitted passed');
             this.isLoading = false;
-
             // login successful so redirect to return url
             this.router.navigateByUrl(this.returnUrl);
           },

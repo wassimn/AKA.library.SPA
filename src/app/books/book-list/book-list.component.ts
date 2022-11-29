@@ -44,7 +44,7 @@ export class BookListComponent implements OnInit, AfterViewInit {
           })
         )
         .subscribe((books: Book []) => {
-          this.dataSource.data = books;
+          this.dataSource.data = books
         });
     }
   }

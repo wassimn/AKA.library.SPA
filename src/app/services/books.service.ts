@@ -4,18 +4,20 @@ import { Book } from '../shared/book';
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { SignedOutBook } from '../shared/signed-out-book';
-import { map } from 'lodash';
+// import { map } from 'lodash';
 import { GoogleBooksMetadata } from '../shared/google-books-metadata';
 import { Observable } from 'rxjs/internal/Observable';
 import { throwError } from 'rxjs/internal/observable/throwError';
 import { of } from 'rxjs/internal/observable/of';
+import { take, tap ,map } from 'rxjs/operators';
+import { forkJoin } from 'rxjs';
 
 @Injectable()
 export class BooksService {
 
   apiUrl: string;
   googleBooksAPIKey: string;
-
+value:number;
   constructor(private http: HttpClient) {
     this.apiUrl = `${environment.apiUrl}${environment.apiPath}/libraries/`;
     this.googleBooksAPIKey = 'AIzaSyCCN_lQcnEQ51ohoDBroFvfwN8wnJi9iPY';
@@ -23,13 +25,15 @@ export class BooksService {
 
   getBooks(libraryId: number): Observable<Book[]> {
     const url = `${this.apiUrl}${libraryId}/books`;
+
     return this.http.get<LibraryBook[]>(url)
       .pipe(
-        map(items => items.map(item => item.book))
+        map(items => items.filter(item => item.totalPurchasedByLibrary > 0).map(item => item.book))
       );
   }
 
   getBook(libraryId: number, bid: number): Observable<Book> {
+    console.log('getBook called')
     const url = `${this.apiUrl}${libraryId}/books/${bid}`;
     return this.http.get<Book>(url);
   }
@@ -54,7 +58,16 @@ export class BooksService {
    */
   getTotalNumberOfCopiesInLibrary(libraryId: number, bookId: number): Observable<number> {
     // TODO: Add implementation
-    return of(0);
+    const url = `${this.apiUrl}${libraryId}/books`;
+
+    return this.http.get<LibraryBook[]>(url)
+      .pipe(
+        map(items => {
+          const expectedLibraryBook = items.find(item => item.book.bookId === bookId);
+          return expectedLibraryBook ? expectedLibraryBook.totalPurchasedByLibrary : 0
+        })
+      );
+  //   return of(0);
   }
 
   /**
@@ -66,9 +79,18 @@ export class BooksService {
    * @returns {Observable<number>}
    * @memberof BooksService
    */
+  //2 point
   getNumberOfAvailableBookCopies(libraryId: number, bookId: number): Observable<number> {
     // TODO: Add implementation
-    return throwError('Not Implemented');
+    console.log('getAvailableBooks called')
+    return forkJoin([this.getTotalNumberOfCopiesInLibrary(libraryId, bookId), this.getCheckedOutBooks(libraryId)])
+    .pipe(map(([totalCopies, allCheckedOutBooks]) => {
+      if(totalCopies > 0) {
+        const expectedCheckedOutBooksLength = allCheckedOutBooks.filter(b => b.bookId  === bookId).length;
+        return totalCopies >= expectedCheckedOutBooksLength ? totalCopies - expectedCheckedOutBooksLength : 0;
+      }
+      return 0;
+    }))
   }
 
   checkOutBook(libraryId: number, bookId: number, memberId: number): Observable<SignedOutBook> {
@@ -92,9 +114,8 @@ export class BooksService {
   getBookMetaData(isbn: string): Observable<GoogleBooksMetadata> {
     // TODO: Add implementation
     const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&key=${this.googleBooksAPIKey}`;
-
-    // return this.http.get(url);
-    return throwError('Funtion not implemented');
+     return this.http.get<GoogleBooksMetadata>(url);
+   
 
   }
 

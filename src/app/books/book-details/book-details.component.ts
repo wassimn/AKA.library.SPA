@@ -41,7 +41,7 @@ export class BookDetailsComponent implements OnInit {
       .subscribe((params: ParamMap) => {
         const libraryId = +params.get('lid');
         const bookId = +params.get('id');
-        this.getBookDetails(libraryId, bookId);
+       this.getBookDetails(libraryId, bookId)
       });
   }
 
@@ -53,7 +53,7 @@ export class BookDetailsComponent implements OnInit {
    */
   isMaximumNumberOfBooksSignedOut(): boolean {
     // TODO: Implement check
-    return false;
+    return this.numBooksSignedOut >= 2;
   }
 
   checkOutBook() {
@@ -97,9 +97,9 @@ export class BookDetailsComponent implements OnInit {
     ]).pipe(
       take(1),
       tap(([book, numberOfAvailableCopies, signedOutBooks]) => {
-        this.numBooksSignedOut = signedOutBooks.length;
+        this.numBooksSignedOut = signedOutBooks.filter(book => book.libraryId === libraryId).length;
         this.numBooksAvailable = numberOfAvailableCopies;
-        this.numOfThisBookSignedOutByUser = filter(signedOutBooks, (signedOutBook) => signedOutBook.bookId === book.bookId).length;
+        this.numOfThisBookSignedOutByUser = filter(signedOutBooks, (signedOutBook) => signedOutBook.bookId === bookId && signedOutBook.libraryId === libraryId).length;
         const isbn = book.isbn;
         this.books.getBookMetaData(isbn)
           .pipe(take(1))
@@ -107,15 +107,16 @@ export class BookDetailsComponent implements OnInit {
             this.bookMetadata = bookMetadata;
           });
       }),
-      map(([book, numberOfAvailableCopies, signedOutBooks]) => {
+      map(([book, numberOfAvailableCopies]) => {
         const areBooksAvailable = numberOfAvailableCopies > 0;
-        const hasUserCheckedThisBookOut = !!find(signedOutBooks, { bookId: book.bookId });
-        return { ...book, isAvailable: areBooksAvailable, isCheckedOut: hasUserCheckedThisBookOut };
+        return { ...book, isAvailable: areBooksAvailable, isCheckedOut: this.numOfThisBookSignedOutByUser  > 0};
       }),
       catchError(err => {
         return throwError(err);
       })
-    );
+    ).subscribe((value) => {
+        this.book = value
+    });
   }
 
 }
